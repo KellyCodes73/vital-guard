@@ -1,0 +1,22 @@
+# Backend
+backend/target/
+*.iml
+.idea/
+.vscode/
+
+# Secretos (NUNCA subir)
+*service-account*.json
+*firebase-adminsdk*.json
+google-services.json
+.env
+*.jks
+*.keystore
+mobile/android/key.properties
+mobile/android/local.properties
+
+# Paquetes de entrega
+*.zip
+
+# Flutter
+mobile/.dart_tool/
+mobile/build/

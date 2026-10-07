@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    container_name: vitalguard-db
+    environment:
+      POSTGRES_DB: vitalguard
+      POSTGRES_USER: vitalguard
+      POSTGRES_PASSWORD: vitalguard
+    ports:
+      - "5432:5432"
+    volumes:
+      - vitalguard_data:/var/lib/postgresql/data
+volumes:
+  vitalguard_data:

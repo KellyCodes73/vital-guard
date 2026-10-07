@@ -1,0 +1,43 @@
+# Plano de despliegue para Render (https://render.com): crea la base de datos y el backend.
+databases:
+  - name: vitalguard-db
+    plan: free
+    databaseName: vitalguard
+    user: vitalguard
+
+services:
+  - type: web
+    name: vitalguard-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: vitalguard-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: vitalguard-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: vitalguard-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: vitalguard-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: vitalguard-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      # Empieza en false (notificaciones simuladas). Se activa en el modulo C, despues de subir la credencial de Firebase.
+      - key: FCM_ENABLED
+        value: "false"
+      - key: FCM_SERVICE_ACCOUNT_PATH
+        value: /etc/secrets/firebase-service-account.json

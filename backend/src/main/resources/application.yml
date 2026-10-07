@@ -1,0 +1,34 @@
+server:
+  # El hosting (Render) define PORT; en tu PC se usa SERVER_PORT o 8080.
+  port: ${PORT:${SERVER_PORT:8080}}
+  address: 0.0.0.0   # accesible desde el teléfono por la IP local del PC
+
+spring:
+  application:
+    name: vital-guard-backend
+  datasource:
+    # Local: DB_URL completo, o localhost por defecto. Nube: DB_HOST, DB_PORT y DB_NAME.
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:vitalguard}}
+    username: ${DB_USER:vitalguard}
+    password: ${DB_PASSWORD:vitalguard}
+  jpa:
+    hibernate:
+      ddl-auto: update   # solo MVP/desarrollo
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    # Mínimo 32 caracteres. En la nube se genera automáticamente (JWT_SECRET).
+    secret: ${JWT_SECRET:vital-guard-dev-secret-change-me-0123456789-abcdef}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+  alert:
+    # Cuánto dura la ubicación temporal compartida durante una alerta.
+    location-window-minutes: ${ALERT_LOCATION_WINDOW_MINUTES:30}
+  fcm:
+    # false = notificaciones simuladas (solo log). true = Firebase Cloud Messaging real.
+    enabled: ${FCM_ENABLED:false}
+    # Ruta al JSON de la cuenta de servicio de Firebase (NUNCA dentro del proyecto).
+    service-account-path: ${FCM_SERVICE_ACCOUNT_PATH:}
