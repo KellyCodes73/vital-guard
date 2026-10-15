@@ -1,101 +1,95 @@
-# Vital Guard 
+Vital Guard
 
-Aplicación móvil de **apoyo preventivo** para el monitoreo de posibles eventos respiratorios durante el sueño.
+Aplicación móvil para el monitoreo preventivo durante el sueño
 
-## Ejecución rápida (Windows)
-Desde la carpeta `vital-guard`:
-```
-powershell -ExecutionPolicy Bypass -File .\scripts\iniciar-backend.ps1 -Fcm     # backend (sin -Fcm: notificaciones simuladas)
-powershell -ExecutionPolicy Bypass -File .\scripts\abrir-firewall.ps1           # (Administrador) puerto 8081 para el teléfono
-powershell -ExecutionPolicy Bypass -File .\scripts\construir-apk.ps1            # construye e instala la app en el teléfono (USB)
-```
+Vital Guard es una aplicación móvil en desarrollo que busca ayudar a identificar posibles patrones respiratorios inusuales durante el sueño y facilitar la comunicación de alertas a contactos de confianza.
 
-## Arquitectura
-Flutter (Android) ⇄ REST/JWT ⇄ Spring Boot ⇄ PostgreSQL · FCM para notificaciones.
-El audio se procesa solo en el teléfono; al backend solo llegan eventos.
+La aplicación integra herramientas de monitoreo, gestión de eventos y notificaciones para ofrecer una experiencia de acompañamiento preventivo.
 
-```
+Aviso importante: Vital Guard no es un dispositivo médico, no realiza diagnósticos y no sustituye la evaluación de un profesional de la salud. El análisis de audio es experimental y puede generar falsas alarmas.
+Funcionalidades
+Gestión de usuarios: registro, inicio de sesión y administración del perfil.
+Monitoreo durante el sueño: configuración y gestión de sesiones de monitoreo.
+Análisis de audio: procesamiento experimental en el dispositivo móvil para evaluar posibles patrones inusuales.
+Modo demostración: permite probar el flujo de monitoreo y alertas sin depender del análisis real del micrófono.
+Eventos y alertas: registro de eventos, seguimiento de su estado y gestión de alertas.
+Contactos de confianza: vinculación entre usuarios mediante invitaciones.
+Notificaciones: integración con Firebase Cloud Messaging para el envío de notificaciones push cuando está configurado.
+Ubicación temporal: permite compartir información de ubicación durante determinadas alertas, de acuerdo con las condiciones de la aplicación.
+Tecnologías utilizadas
+Aplicación móvil: Flutter y Dart.
+Backend: Java 21 y Spring Boot.
+API: REST con autenticación mediante JWT.
+Base de datos: PostgreSQL.
+Notificaciones push: Firebase Cloud Messaging (FCM).
+Contenedores: Docker.
+Despliegue del backend: Render.
+Arquitectura
+
+Vital Guard utiliza una arquitectura cliente-servidor. La aplicación móvil se comunica con el backend mediante una API REST autenticada.
+
+El backend gestiona los usuarios, las sesiones de monitoreo, los eventos, las vinculaciones entre usuarios y las alertas. PostgreSQL se utiliza para almacenar los datos correspondientes.
+
+El procesamiento experimental del audio se realiza en el dispositivo móvil. El audio no se envía al backend según el diseño de la aplicación; se transmiten los eventos generados durante el monitoreo.
+
+Estructura del proyecto
 vital-guard/
-  backend/   Spring Boot (Java 21, Maven)
-  mobile/    Flutter (se crea con `flutter create`)
-  docker-compose.yml
-```
+├── backend/       # API REST y lógica del servidor
+├── mobile/        # Aplicación móvil Flutter para Android
+├── scripts/       # Automatización de tareas del proyecto
+├── docker-compose.yml
+├── render.yaml
+└── README.md
 
-## Requisitos
-- JDK 21, Maven 3.9+
-- Docker (recomendado) o PostgreSQL 16 instalado
-- Flutter SDK, Android Studio, teléfono Android real (más adelante)
+Requisitos de desarrollo
+JDK 21.
+Maven.
+Flutter SDK.
+Android Studio.
+Docker y Docker Compose para los servicios locales que correspondan.
+Un dispositivo Android para probar la aplicación móvil.
+Aplicación móvil
 
-## Instalación y ejecución (backend)
-1. Base de datos: `docker compose up -d`
-2. Backend: `cd backend && mvn spring-boot:run`
-3. Probar: `curl http://localhost:8080/api/health`
+La aplicación está desarrollada con Flutter y dispone de funcionalidades para gestionar usuarios, iniciar sesiones de monitoreo y consultar eventos y alertas.
 
-## Variables de entorno
-| Variable | Por defecto | Descripción |
-|---|---|---|
-| DB_URL | jdbc:postgresql://localhost:5432/vitalguard | URL JDBC |
-| DB_USER | vitalguard | Usuario BD |
-| DB_PASSWORD | vitalguard | Contraseña BD |
-| JWT_SECRET | clave de desarrollo | Clave de firma JWT (mínimo 32 caracteres) |
-| JWT_EXPIRATION_MINUTES | 1440 | Duración del token |
-| SERVER_PORT | 8080 | Puerto del backend |
+Para las pruebas en un dispositivo Android, se puede construir el APK mediante el script incluido en el proyecto:
 
-## App móvil (Flutter)
-Crear el proyecto (una sola vez, desde la raíz `vital-guard/`):
-```
-flutter create --org com.vitalguard --project-name vital_guard --platforms android,web mobile
-cd mobile
-flutter pub add flutter_riverpod go_router dio flutter_secure_storage geolocator url_launcher
-```
-Luego se copia el código de `lib/` (el zip lo trae como `mobile_lib/`).
+powershell -ExecutionPolicy Bypass -File .\scripts\construir-apk.ps1 -ApiUrl https://vitalguard-backend.onrender.com
 
-Ejecutar (con el backend encendido):
-```
-cd mobile
-flutter run -d chrome                      # pruebas rápidas en el navegador
-flutter run --dart-define=API_BASE_URL=http://IP_DE_TU_PC:8081   # teléfono real
-```
-La URL del backend se define en `lib/core/config/api_config.dart` (por defecto http://localhost:8081).
-CORS está abierto solo para desarrollo en `SecurityConfig`.
 
-## Notificaciones push (Firebase Cloud Messaging) - Fase 7B
-Sin configurar nada, el backend usa notificaciones SIMULADAS (solo log) y el auxiliador ve las alertas consultando cada 5 s.
-Para push reales:
-1. Proyecto Firebase + app Android `com.vitalguard.vital_guard` -> `mobile/android/app/google-services.json` (no se sube a Git).
-2. Cuenta de servicio (JSON) guardada FUERA del proyecto, p. ej. `%USERPROFILE%\vital-guard-secrets\firebase-service-account.json`.
-3. Variables de entorno del backend:
-```
-$env:FCM_ENABLED = "true"
-$env:FCM_SERVICE_ACCOUNT_PATH = "$HOME\vital-guard-secrets\firebase-service-account.json"
-```
-4. App: `flutter pub add firebase_core firebase_messaging`. El push solo funciona en Android (en el navegador se omite).
+La aplicación utiliza el backend desplegado para comunicarse con los servicios de Vital Guard.
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| PUT | /api/users/me/fcm-token | Registra el token del teléfono (se le quita a otras cuentas) |
-| DELETE | /api/users/me/fcm-token | Quita el token (al cerrar sesión) |
+Backend y servicios
 
-## Análisis de audio experimental - Fase 8
-Dos modos al iniciar el monitoreo (interruptor "Modo demostración" en el Home):
-- **Demostración** (activado): sin micrófono; botones que simulan un patrón o una falsa alarma.
-- **Experimental** (apagado): usa el micrófono del teléfono.
+El backend está desarrollado con Spring Boot y proporciona endpoints para:
 
-Flujo: `AudioCaptureService` (paquete `record`, PCM16 16 kHz mono) -> `AudioPreprocessingService`
-(tramos de 100 ms -> intensidad RMS, ventanas de 2 s; **el audio se descarta**) -> `RespiratoryAnalysisService`
-(`ExperimentalEnergyAnalyzer`, heurística NO clínica: sonido de base + pausa prolongada) -> `EventVerificationService`
-(persistencia, repetición, confianza, ruido) -> evento (`source=EXPERIMENTAL`) -> alerta local.
+Autenticación y gestión de usuarios.
+Configuración y sesiones de monitoreo.
+Administración de contactos de confianza.
+Registro y seguimiento de eventos.
+Gestión y confirmación de alertas.
+Registro de tokens de notificaciones push.
+Gestión de información de ubicación temporal cuando corresponde.
 
-Privacidad: el audio no se guarda ni se envía; solo se calculan valores de intensidad en el teléfono.
-Limitación: el análisis solo funciona con la app abierta y la pantalla encendida (se usa wakelock).
-Para usar un modelo real (TensorFlow Lite / LiteRT) basta con implementar `RespiratoryAnalysisService`.
+La API utiliza autenticación mediante JWT para las rutas protegidas.
 
-Dependencias: `flutter pub add record wakelock_plus`. Pruebas: `flutter test` (en `mobile/`).
+Despliegue
 
-## Despliegue en la nube (Render)
-- `render.yaml` crea la base de datos PostgreSQL gratuita y el backend (Docker, `backend/Dockerfile`).
-- URL: https://vitalguard-backend.onrender.com (salud: `/api/health`).
-- Variables: `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` (desde la base de datos), `JWT_SECRET` (generado), `FCM_ENABLED`,
-  `FCM_SERVICE_ACCOUNT_PATH=/etc/secrets/firebase-service-account.json` (la credencial se sube como *Secret File*, nunca al repositorio).
-- APK apuntando a la nube: `powershell -ExecutionPolicy Bypass -File .\scripts\construir-apk.ps1 -ApiUrl https://vitalguard-backend.onrender.com`
+El backend está desplegado en Render y utiliza PostgreSQL para la persistencia de datos.
 
+Backend: https://vitalguard-backend.onrender.com
+Comprobación del servicio: https://vitalguard-backend.onrender.com/api/health
+
+La disponibilidad de los servicios depende de la configuración y las condiciones de la plataforma de despliegue.
+
+Privacidad y seguridad
+El diseño contempla el procesamiento del audio en el dispositivo móvil.
+El audio no se almacena ni se envía al backend según el flujo de procesamiento previsto.
+La API utiliza autenticación mediante JWT.
+Las credenciales y los secretos de los servicios externos deben mantenerse fuera del repositorio.
+La ubicación se comparte únicamente durante las condiciones previstas por el flujo de alertas.
+Estado del desarrollo
+
+Vital Guard se encuentra en desarrollo continuo. Sus funcionalidades se implementan y mejoran progresivamente, con especial atención al monitoreo, la gestión de alertas, la comunicación con contactos de confianza y la protección de los datos.
+
+El análisis de audio continúa siendo experimental y no debe utilizarse para tomar decisiones médicas.
