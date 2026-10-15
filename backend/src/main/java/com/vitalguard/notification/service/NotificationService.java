@@ -55,4 +55,21 @@ public class NotificationService {
         n.setCreatedAt(Instant.now());
         notificationRepository.save(n);
     }
+
+    /** Canal de envío en uso: "LOG" (simulado) o "FCM" (Firebase). */
+    public String channel() {
+        return pushSender.channel();
+    }
+
+    /** Notificación de prueba (no crea alerta ni registro en la base de datos). */
+    public boolean sendTest(String fcmToken) {
+        try {
+            return pushSender.send(fcmToken, "Prueba de Vital Guard",
+                    "Si ves y escuchas esto, las alertas funcionan en este teléfono.",
+                    Map.of("type", "TEST"));
+        } catch (Exception ex) {
+            log.warn("No se pudo enviar la notificación de prueba", ex);
+            return false;
+        }
+    }
 }

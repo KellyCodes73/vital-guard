@@ -133,3 +133,12 @@ Limitación: el análisis solo funciona con la app abierta y la pantalla encendi
 Para usar un modelo real (TensorFlow Lite / LiteRT) basta con implementar `RespiratoryAnalysisService`.
 
 Dependencias: `flutter pub add record wakelock_plus`. Pruebas: `flutter test` (en `mobile/`).
+
+## Despliegue en la nube (Render)
+- `render.yaml` crea la base de datos PostgreSQL gratuita y el backend (Docker, `backend/Dockerfile`).
+- URL: https://vitalguard-backend.onrender.com (salud: `/api/health`).
+- Variables: `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` (desde la base de datos), `JWT_SECRET` (generado), `FCM_ENABLED`,
+  `FCM_SERVICE_ACCOUNT_PATH=/etc/secrets/firebase-service-account.json` (la credencial se sube como *Secret File*, nunca al repositorio).
+- Plan gratuito: el servicio se duerme tras 15 min sin uso (el primer acceso tarda ~1 min) y la base de datos gratuita expira a los 30 días.
+- APK apuntando a la nube: `powershell -ExecutionPolicy Bypass -File .\scripts\construir-apk.ps1 -ApiUrl https://vitalguard-backend.onrender.com`
+- Guía para el profesor: `docs/GUIA_PROFESOR.md`.

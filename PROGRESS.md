@@ -12,7 +12,10 @@
 - Fase 8: captura de micrófono + análisis experimental + verificación + alerta. Pruebas automáticas (6) y prueba en teléfono verificadas.
 
 ## En desarrollo
-- Despliegue en la nube (Render): modulo A preparado (Dockerfile, render.yaml, PORT configurable). Siguen: B (Render + base de datos), C (Firebase en la nube), D (APK apuntando a la nube).
+- Etapa E2: notificacion de alta prioridad para el auxiliador (canal nativo vital_guard_alerts con sonido de alarma, vibracion y ventana emergente) y boton 'Probar notificacion' (POST /api/users/me/test-push). Pendiente de verificar en teléfono.
+- Etapa E1b: tras avisar a la persona de confianza (o tras ESTOY BIEN) la pantalla de alerta vuelve sola al monitoreo; la alarma sigue hasta DETENER ALARMA (vuelta automatica). Pendiente de verificar.
+- Etapa E1: alarma sonora + vibracion al detectar un posible patron (se apaga con ESTOY BIEN), pausa de 10 min tras una alerta y tope de 3 alertas/hora. Pendiente de verificar. Sigue E2: notificacion con sonido/ventana emergente para el auxiliador.
+- Despliegue en la nube (Render): backend + base de datos publicados (B) y Firebase en la nube (C) verificados. Falta D: apuntar el APK a la nube, cuentas de demostracion y probar el flujo con push.
 - Fase 9: pantalla "Servidor" (cambiar la dirección del backend desde la app), scripts de ejecución, guion de exposición y checklist.
   Pendiente: probar el teléfono por Wi-Fi (sin cable) y recorrer docs/CHECKLIST_PRUEBAS.md.
 

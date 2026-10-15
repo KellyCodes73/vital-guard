@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- Notificaciones (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Vibración de la alarma que despierta al usuario -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <!-- usesCleartextTraffic: permite HTTP hacia el backend de desarrollo (PC en la red local).
          En producción se usaría HTTPS y se quitaría esta línea. -->
@@ -39,6 +41,10 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Canal de notificaciones por defecto: el de alertas (se crea en MainActivity.kt) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="vital_guard_alerts" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

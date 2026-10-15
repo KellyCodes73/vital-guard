@@ -21,6 +21,7 @@ class PipelineState {
   final int silentSeconds;
   final double threshold;
   final bool verifying;
+  final DateTime? pausedUntil;
   final String? error;
 
   const PipelineState({
@@ -30,6 +31,7 @@ class PipelineState {
     this.silentSeconds = 0,
     this.threshold = 0.012,
     this.verifying = false,
+    this.pausedUntil,
     this.error,
   });
 
@@ -40,6 +42,7 @@ class PipelineState {
     int? silentSeconds,
     double? threshold,
     bool? verifying,
+    DateTime? pausedUntil,
     String? error,
     bool clearError = false,
   }) =>
@@ -50,6 +53,7 @@ class PipelineState {
         silentSeconds: silentSeconds ?? this.silentSeconds,
         threshold: threshold ?? this.threshold,
         verifying: verifying ?? this.verifying,
+        pausedUntil: pausedUntil ?? this.pausedUntil,
         error: clearError ? null : (error ?? this.error),
       );
 }
@@ -72,6 +76,11 @@ class PipelineController extends Notifier<PipelineState> {
     });
     Future.microtask(() => _sync(ref.read(monitoringProvider).activeSession));
     return const PipelineState();
+  }
+
+  /// Pausa el análisis (p. ej. mientras hay una alerta en pantalla). No hace nada si no está analizando.
+  void pauseFor(Duration duration) {
+    _pipeline?.pauseFor(duration);
   }
 
   void _sync(MonitoringSession? session) {
@@ -110,6 +119,10 @@ class PipelineController extends Notifier<PipelineState> {
       onError: (error) {
         if (gen != _generation) return;
         state = state.copyWith(running: false, error: error.toString());
+      },
+      onPaused: (until) {
+        if (gen != _generation) return;
+        state = state.copyWith(pausedUntil: until);
       },
     );
 

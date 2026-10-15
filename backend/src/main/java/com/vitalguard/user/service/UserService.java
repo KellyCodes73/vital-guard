@@ -1,6 +1,8 @@
 package com.vitalguard.user.service;
 
 import com.vitalguard.common.NotFoundException;
+import com.vitalguard.notification.service.NotificationService;
+import com.vitalguard.user.dto.TestPushResponse;
 import com.vitalguard.user.dto.UpdateUserRequest;
 import com.vitalguard.user.dto.UserResponse;
 import com.vitalguard.user.entity.User;
@@ -12,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, NotificationService notificationService) {
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -53,6 +57,27 @@ public class UserService {
         User user = find(userId);
         user.setFcmToken(null);
         userRepository.save(user);
+    }
+
+    /** Envía una notificación de prueba al teléfono de esta cuenta (para comprobar sonido y ventana emergente). */
+    @Transactional(readOnly = true)
+    public TestPushResponse testPush(Long userId) {
+        User user = find(userId);
+        String channel = notificationService.channel();
+        String token = user.getFcmToken();
+
+        if ("LOG".equals(channel)) {
+            return new TestPushResponse(false, channel,
+                    "Las notificaciones están en modo simulado en el servidor (FCM desactivado).");
+        }
+        if (token == null || token.isBlank()) {
+            return new TestPushResponse(false, channel,
+                    "Este teléfono aún no tiene el aviso registrado. Cierra sesión, vuelve a entrar y acepta el permiso de notificaciones.");
+        }
+        boolean sent = notificationService.sendTest(token);
+        return new TestPushResponse(sent, channel, sent
+                ? "Notificación de prueba enviada. Bloquea la pantalla: debería llegar en unos segundos."
+                : "Firebase rechazó el envío. Revisa los logs del servidor.");
     }
 
     private User find(Long userId) {

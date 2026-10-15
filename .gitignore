@@ -20,3 +20,20 @@ mobile/android/local.properties
 # Flutter
 mobile/.dart_tool/
 mobile/build/
+
+# Registros de errores locales
+hs_err_pid*.log
+*.log
+
+# Archivos generados
+**/build/
+**/.dart_tool/
+**/.gradle/
+
+# Archivos con secretos
+.env
+.env.*
+!.env.example
+
+# Guia interna no incluida en la entrega
+/docs/GUIA_PROFESOR.md

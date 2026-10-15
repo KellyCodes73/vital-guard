@@ -7,7 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../monitoring/presentation/monitoring_controller.dart';
+import '../../../services/alerts/alarm_service.dart';
+import '../../../services/audio/monitoring_pipeline.dart';
 import '../../../services/location/location_service.dart';
+import '../../monitoring/presentation/pipeline_controller.dart';
 import '../data/alert_repository.dart';
 import '../data/event_repository.dart';
 import '../domain/respiratory_event.dart';
@@ -28,6 +31,7 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
   late final int _total;
   late int _remaining;
   Timer? _timer;
+  late final AlarmService _alarm;
   _Phase _phase = _Phase.counting;
   String? _error;
   String? _locationNote;
@@ -35,12 +39,25 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
   bool get _isFinal =>
       _phase == _Phase.resolved || _phase == _Phase.notified || _phase == _Phase.noHelper;
 
+  // Al terminar (atendido o avisado), la pantalla vuelve sola al monitoreo.
+  int _finalSeconds = 0;
+  bool _exiting = false;
+  int get _returnLimit => _phase == _Phase.resolved ? 3 : 6;
+
   @override
   void initState() {
     super.initState();
     _total = ref.read(monitoringProvider).config?.alertTimeoutSeconds ?? 30;
     _remaining = _total;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+
+    // Alarma para despertar al usuario: "ESTOY BIEN" la apaga.
+    _alarm = ref.read(alarmServiceProvider);
+    _alarm.start();
+
+    // Tras una alerta, el análisis de audio se pausa para no repetirla (p. ej. con ronquidos).
+    final pipeline = ref.read(pipelineProvider.notifier);
+    Future.microtask(() => pipeline.pauseFor(MonitoringPipeline.cooldownAfterAlert));
   }
 
   @override
@@ -50,13 +67,20 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
   }
 
   void _tick() {
-    if (_phase != _Phase.counting || !mounted) return;
+    if (!mounted) return;
+    if (_isFinal) {
+      setState(() => _finalSeconds++);
+      if (_finalSeconds >= _returnLimit) _exit();
+      return;
+    }
+    if (_phase != _Phase.counting) return;
     setState(() => _remaining--);
     if (_remaining <= 0) _escalate();
   }
 
   Future<void> _resolve() async {
     if (_phase != _Phase.counting) return;
+    _alarm.stop(); // el usuario respondió: se apaga la alarma
     setState(() {
       _phase = _Phase.resolving;
       _error = null;
@@ -132,12 +156,13 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
     }
   }
 
+  /// Vuelve a la pantalla de monitoreo (si hay un monitoreo activo) o al inicio.
   void _exit() {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/home');
-    }
+    if (_exiting || !mounted) return;
+    _exiting = true;
+    final hasSession = ref.read(monitoringProvider).activeSession != null;
+    context.go('/home');
+    if (hasSession) context.push('/monitoring/active');
   }
 
   List<Color> get _gradient {
@@ -219,14 +244,14 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
         return _final(
           icon: Icons.notifications_active_outlined,
           title: 'Se avisó a tu persona de confianza',
-          text: 'Recibirá la alerta en su aplicación y podrá confirmar la recepción.',
+          text: 'Recibirá la alerta en su aplicación y podrá confirmar la recepción. La alarma sigue sonando hasta que la detengas en la pantalla de monitoreo.',
           note: _locationNote,
         );
       case _Phase.noHelper:
         return _final(
           icon: Icons.person_off_outlined,
           title: 'No hay persona de confianza vinculada',
-          text: 'No pudimos avisar a nadie. El evento quedó registrado en tu historial.',
+          text: 'No pudimos avisar a nadie. El evento quedó registrado en tu historial. La alarma sigue sonando hasta que la detengas en la pantalla de monitoreo.',
         );
     }
   }
@@ -316,7 +341,11 @@ class _AlertScreenState extends ConsumerState<AlertScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0x99FFFFFF), fontSize: 12)),
         ],
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
+        Text('Volviendo al monitoreo en ${(_returnLimit - _finalSeconds).clamp(0, 99)} s...',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0x99FFFFFF))),
+        const SizedBox(height: 12),
         _whiteButton('VOLVER AL MONITOREO', _exit),
       ],
     );

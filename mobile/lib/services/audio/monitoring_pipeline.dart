@@ -7,7 +7,15 @@ import 'respiratory_analysis_service.dart';
 
 /// Orquesta el análisis: captura -> preprocesamiento -> análisis -> verificación.
 /// Cuando la verificación confirma un posible patrón, avisa con [onConfirmed].
+///
+/// Para no generar alertas repetidas (p. ej. con ronquidos), después de cada detección
+/// el análisis se pausa: [cooldown] justo al detectar, [cooldownAfterAlert] mientras dura la
+/// alerta, y [throttleCooldown] si ya hubo [maxAlertsPerHour] alertas en la última hora.
 class MonitoringPipeline {
+  static const Duration cooldownAfterAlert = Duration(minutes: 10);
+  static const Duration throttleCooldown = Duration(minutes: 30);
+  static const int maxAlertsPerHour = 3;
+
   MonitoringPipeline({
     required this.capture,
     required this.preprocessing,
@@ -17,6 +25,7 @@ class MonitoringPipeline {
     required this.onWindow,
     required this.onConfirmed,
     required this.onError,
+    required this.onPaused,
     this.cooldown = const Duration(seconds: 90),
     this.historyLength = 5,
   });
@@ -37,12 +46,15 @@ class MonitoringPipeline {
 
   final void Function(Object error) onError;
 
-  /// Tras una detección se pausa el análisis un tiempo, para no repetir la alerta.
+  /// Se llama cada vez que cambia el momento hasta el que el análisis está en pausa.
+  final void Function(DateTime until) onPaused;
+
   final Duration cooldown;
   final int historyLength;
 
   StreamSubscription<AudioFeatures>? _subscription;
   final List<AnalysisWindow> _history = [];
+  final List<DateTime> _alertTimes = [];
   DateTime? _pausedUntil;
   bool _running = false;
 
@@ -79,6 +91,18 @@ class MonitoringPipeline {
     analyzer.reset();
   }
 
+  /// Pausa el análisis (nunca acorta una pausa que ya esté en curso).
+  void pauseFor(Duration duration) {
+    final until = DateTime.now().add(duration);
+    final current = _pausedUntil;
+    if (current == null || until.isAfter(current)) {
+      _pausedUntil = until;
+    }
+    _history.clear();
+    analyzer.reset();
+    onPaused(_pausedUntil!);
+  }
+
   void _onFeatures(AudioFeatures features) {
     if (!_running) return;
 
@@ -95,9 +119,14 @@ class MonitoringPipeline {
       verifying = true;
       final result = verifier.evaluate(_history);
       if (result.confirmed) {
+        _alertTimes.add(now);
+        _alertTimes.removeWhere((t) => now.difference(t) > const Duration(hours: 1));
+        final throttled = _alertTimes.length >= maxAlertsPerHour;
+
         _history.clear();
         analyzer.reset();
-        _pausedUntil = now.add(cooldown);
+        _pausedUntil = now.add(throttled ? throttleCooldown : cooldown);
+        onPaused(_pausedUntil!);
         onWindow(window, analyzer.diagnostics, false);
         onConfirmed(result);
         return;

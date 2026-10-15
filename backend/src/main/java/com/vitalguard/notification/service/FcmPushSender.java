@@ -4,6 +4,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -24,6 +25,9 @@ import org.springframework.stereotype.Component;
 public class FcmPushSender implements PushSender {
 
     private static final Logger log = LoggerFactory.getLogger(FcmPushSender.class);
+
+    /** Canal de alta prioridad creado por la app (MainActivity.kt): suena como alarma y aparece como ventana emergente. */
+    private static final String ALERT_CHANNEL_ID = "vital_guard_alerts";
 
     private final FirebaseMessaging messaging;
 
@@ -59,7 +63,13 @@ public class FcmPushSender implements PushSender {
             Message.Builder builder = Message.builder()
                     .setToken(fcmToken)
                     .setNotification(Notification.builder().setTitle(title).setBody(body).build())
-                    .setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build());
+                    .setAndroidConfig(AndroidConfig.builder()
+                            .setPriority(AndroidConfig.Priority.HIGH)
+                            .setNotification(AndroidNotification.builder()
+                                    .setChannelId(ALERT_CHANNEL_ID)
+                                    .setPriority(AndroidNotification.Priority.MAX)
+                                    .build())
+                            .build());
             if (data != null) {
                 builder.putAllData(data);
             }

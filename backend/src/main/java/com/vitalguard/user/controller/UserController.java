@@ -2,6 +2,7 @@ package com.vitalguard.user.controller;
 
 import com.vitalguard.security.AuthenticatedUser;
 import com.vitalguard.user.dto.FcmTokenRequest;
+import com.vitalguard.user.dto.TestPushResponse;
 import com.vitalguard.user.dto.UpdateUserRequest;
 import com.vitalguard.user.dto.UserResponse;
 import com.vitalguard.user.service.UserService;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,5 +49,11 @@ public class UserController {
     public ResponseEntity<Void> clearFcmToken(@AuthenticationPrincipal AuthenticatedUser principal) {
         userService.clearFcmToken(principal.id());
         return ResponseEntity.noContent().build();
+    }
+
+    /** Envía una notificación de prueba al teléfono de la cuenta que la pide. */
+    @PostMapping("/me/test-push")
+    public TestPushResponse testPush(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return userService.testPush(principal.id());
     }
 }

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/time_format.dart';
+import '../../../services/alerts/alarm_service.dart';
 import '../../../services/audio/demo_pattern_simulator.dart';
 import '../../../services/audio/event_verification_service.dart';
 import '../../alerts/data/event_repository.dart';
@@ -50,6 +51,7 @@ class _MonitoringActiveScreenState extends ConsumerState<MonitoringActiveScreen>
       _error = null;
     });
     try {
+      await ref.read(alarmServiceProvider).stop();
       await ref.read(monitoringProvider.notifier).stop();
       if (mounted) context.go('/home');
     } catch (e) {
@@ -186,6 +188,10 @@ class _MonitoringActiveScreenState extends ConsumerState<MonitoringActiveScreen>
             'Sonido de base: ${p.baselineReady ? 'detectado' : 'esperando'} · Silencio: ${p.silentSeconds} s',
             style: const TextStyle(color: Color(0xB3FFFFFF), fontSize: 12),
           ),
+          if (p.pausedUntil != null && p.pausedUntil!.isAfter(DateTime.now()))
+            Text('En pausa hasta las ${formatHm(p.pausedUntil!)} (alerta reciente)',
+                style: const TextStyle(
+                    color: Color(0xFFFFE082), fontSize: 12, fontWeight: FontWeight.w600)),
           Text('Umbral de actividad: ${p.threshold.toStringAsFixed(3)}',
               style: const TextStyle(color: Color(0x99FFFFFF), fontSize: 12)),
           if (p.error != null) ...[
@@ -232,6 +238,8 @@ class _MonitoringActiveScreenState extends ConsumerState<MonitoringActiveScreen>
       status = 'No se pudo usar el micrófono';
     } else if (pipeline.verifying) {
       status = 'Posible patrón detectado: verificando...';
+    } else if (pipeline.pausedUntil != null && pipeline.pausedUntil!.isAfter(DateTime.now())) {
+      status = 'Análisis en pausa tras la última alerta';
     } else if (pipeline.running) {
       status = 'Escuchando... (el audio no se guarda)';
     } else {
@@ -263,6 +271,47 @@ class _MonitoringActiveScreenState extends ConsumerState<MonitoringActiveScreen>
                       _banner('MODO EXPERIMENTAL – análisis de audio no clínico',
                           bg: const Color(0x337CC6E8), fg: AppColors.sky),
                     const SizedBox(height: 24),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: ref.read(alarmServiceProvider).activeNotifier,
+                      builder: (context, ringing, _) {
+                        if (!ringing) return const SizedBox.shrink();
+                        return Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0x33FF5252),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0x99FF8A80)),
+                          ),
+                          child: Column(
+                            children: [
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.alarm, color: Color(0xFFFF8A80)),
+                                  SizedBox(width: 8),
+                                  Text('ALARMA SONANDO',
+                                      style: TextStyle(
+                                          color: Color(0xFFFF8A80),
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 1)),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppColors.deepBlue,
+                                ),
+                                onPressed: () => ref.read(alarmServiceProvider).stop(),
+                                child: const Text('DETENER ALARMA'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                     const Icon(Icons.nightlight_round, size: 56, color: AppColors.sky),
                     const SizedBox(height: 12),
                     const Text('Monitoreo en curso',

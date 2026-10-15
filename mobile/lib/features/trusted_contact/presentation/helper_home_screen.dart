@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/time_format.dart';
 import '../../../widgets/disclaimer_text.dart';
@@ -125,6 +126,12 @@ class HelperHomeScreen extends ConsumerWidget {
                   label: const Text('Vincular con un código'),
                   onPressed: () => context.push('/trusted-contact/accept'),
                 ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  icon: const Icon(Icons.notifications_active_outlined, size: 18),
+                  label: const Text('Probar notificación en este teléfono'),
+                  onPressed: () => _testPush(context, ref),
+                ),
                 const SizedBox(height: 24),
                 const DisclaimerText(),
               ],
@@ -132,6 +139,22 @@ class HelperHomeScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Se envía una notificación a este mismo teléfono para comprobar el sonido y la ventana emergente.
+  Future<void> _testPush(BuildContext context, WidgetRef ref) async {
+    String message;
+    try {
+      final res = await ref.read(dioProvider).post('/api/users/me/test-push');
+      final data = Map<String, dynamic>.from(res.data as Map);
+      message = data['message'] as String;
+    } catch (e) {
+      message = apiErrorMessage(e);
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 6)),
     );
   }
 }
