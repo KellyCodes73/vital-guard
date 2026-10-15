@@ -41,45 +41,6 @@ vital-guard/
 | JWT_EXPIRATION_MINUTES | 1440 | Duración del token |
 | SERVER_PORT | 8080 | Puerto del backend |
 
-## Endpoints
-| Método | Ruta | Estado |
-|---|---|---|
-| GET | /api/health | Público (Fase 1) |
-| POST | /api/auth/register | Público (Fase 2). Body: name, lastName, email, password, confirmPassword, role (MONITORED/HELPER) |
-| POST | /api/auth/login | Público (Fase 2). Body: email, password |
-| GET | /api/users/me | JWT (Fase 2) |
-| PUT | /api/users/me | JWT (Fase 2). Body: name, lastName |
-| PUT | /api/users/me/fcm-token | JWT (Fase 2). Body: token |
-
-| GET | /api/monitoring/config | JWT, rol MONITORED (Fase 4). Crea la config por defecto si no existe |
-| PUT | /api/monitoring/config | JWT, rol MONITORED. Body: startTime, endTime ("HH:mm"), scheduledEnabled, alertTimeoutSeconds (10-300) |
-| POST | /api/monitoring/start | JWT, rol MONITORED. Body opcional: demoMode. Si ya hay una sesión activa la devuelve |
-| POST | /api/monitoring/{id}/stop | JWT, rol MONITORED |
-| GET | /api/monitoring/active | JWT, rol MONITORED. 200 con la sesión o 204 si no hay |
-
-| POST | /api/trusted-contacts/invite | JWT, rol MONITORED (Fase 5). Crea código de 6 dígitos (24 h). Si hay una vigente la devuelve; 409 si ya hay vinculación activa |
-| POST | /api/trusted-contacts/accept | JWT, rol HELPER. Body: code |
-| GET | /api/trusted-contacts | JWT. Monitoreado: su invitación/vinculación; Auxiliador: personas vinculadas |
-| DELETE | /api/trusted-contacts/{id} | JWT, rol MONITORED. Revoca la vinculación o cancela la invitación |
-
-| POST | /api/events | JWT, rol MONITORED (Fase 6). Body: sessionId, confidence (0-1), source (EXPERIMENTAL/DEMO). Requiere sesión activa |
-| GET | /api/events | JWT, rol MONITORED. Últimos 100 eventos propios |
-| GET | /api/events/{id} | JWT, rol MONITORED |
-| POST | /api/events/{id}/resolve | JWT, rol MONITORED. "Estoy bien" (ATENDIDO_POR_USUARIO) |
-| POST | /api/events/{id}/escalate | JWT, rol MONITORED. Crea la alerta (NOTIFICADO_A_AUXILIADOR) o SIN_AUXILIADOR si no hay vinculación activa |
-
-| GET | /api/alerts | JWT, rol HELPER (Fase 7A). Alertas recientes de las personas vinculadas activas |
-| GET | /api/alerts/{id} | JWT, rol HELPER. Detalle con ubicación temporal (solo si la ventana sigue abierta y la vinculación está activa) |
-| POST | /api/alerts/{id}/acknowledge | JWT, rol HELPER. Confirma recepción; el evento pasa a CERRADO |
-| POST | /api/alerts/{id}/location | JWT, rol MONITORED. Body: latitude, longitude, accuracyMeters. Solo durante la ventana temporal |
-
-Variables opcionales: `ALERT_LOCATION_WINDOW_MINUTES` (por defecto 30) = duración de la ubicación temporal;
-`app.fcm.enabled` (por defecto false: notificaciones simuladas en el log; Fase 7B las enviará con FCM).
-
-Las rutas protegidas requieren la cabecera `Authorization: Bearer <token>`.
-
-(Se amplía por fase.)
-
 ## App móvil (Flutter)
 Crear el proyecto (una sola vez, desde la raíz `vital-guard/`):
 ```
