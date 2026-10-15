@@ -37,3 +37,7 @@ hs_err_pid*.log
 
 # Guia interna no incluida en la entrega
 /docs/GUIA_PROFESOR.md
+
+# Registros de errores de Java que no se suben
+hs_err_pid*.log
+replay_pid*.log
